@@ -1,5 +1,6 @@
 // import { useEffect, useState } from 'react';
-import { useLoaderData } from 'react-router-dom';
+import { Suspense } from 'react';
+import { Await, useLoaderData } from 'react-router-dom';
 
 import EventsList from '../components/EventsList';
 
@@ -33,22 +34,29 @@ function EventsPage() {
 //       {!isLoading && fetchedEvents && <EventsList events={fetchedEvents} />}
 //     </>
 //   );
-  const data = useLoaderData();
+  const {events} = useLoaderData();
 
 //   if (data.isError) {
 //     return <p>{data.message}</p>
 //   }
 
-  const events = data.events;
+//   const events = data.events;
 
+//   return (
+//     <EventsList events={events} />
+//   );
   return (
-    <EventsList events={events} />
+    <Suspense fallback={<p style={{ textAlign: 'center' }}>Loading ...</p>}>
+        <Await resolve={events}>
+            {(loadedEvents) => <EventsList events={loadedEvents} />}
+        </Await>
+    </Suspense>
   );
 }
 
 export default EventsPage;
 
-export async function loader() {
+async function loadEvents() {
     const response = await fetch('http://localhost:8080/events');
               
     if (!response.ok) {
@@ -67,6 +75,23 @@ export async function loader() {
     } else {
         // const resData = await response.json();
         // return resData.events;
-        return response;
+        
+        // return response;
+        const resData = await response.json();
+        return resData.events;
     }
+}
+
+// "defer" applicable for react-router-dom v6 only, not applicable for v7
+// export function loader() {
+//     return defer({
+//         events: loadEvents()
+//     })
+// }
+
+// For react-router-dom v7
+export async function loader() {
+    return {
+        events: loadEvents()
+    };
 }
